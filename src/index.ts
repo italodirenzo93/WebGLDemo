@@ -19,6 +19,9 @@ export function main() {
     // Vertex shader
     const vertexShaderSource = `
     attribute vec3 aPosition;
+    attribute vec3 aColor;
+
+    varying lowp vec4 vColor;
 
     uniform mat4 uMatProj;
     uniform mat4 uMatView;
@@ -26,7 +29,9 @@ export function main() {
 
     void main() {
         mat4 mvp = uMatProj * uMatView * uMatModel;
+
         gl_Position = mvp * vec4(aPosition, 1);
+        vColor = vec4(aColor, 1);
     }
     `;
 
@@ -42,8 +47,10 @@ export function main() {
 
     // Fragment shader
     const fragmentShaderSource = `
+    varying lowp vec4 vColor;
+
     void main() {
-        gl_FragColor = vec4(1, 1, 1, 1);
+        gl_FragColor = vColor;
     }
     `;
 
@@ -77,9 +84,15 @@ export function main() {
 
     // Vertex buffer
     const vertices = [
-        -0.5, -0.5, 1.0,
-        0.0, 0.5, 1.0,
-        0.5, -0.5, 1.0,
+        -0.5, -0.5, 0.0,
+        0.0, 0.5, 0.0,
+        0.5, -0.5, 0.0,
+    ];
+
+    const colors = [
+        1.0, 0.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 0.0, 1.0,
     ];
 
     const vertexBuffer = gl.createBuffer();
@@ -87,6 +100,7 @@ export function main() {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
     const aPosition = gl.getAttribLocation(program, "aPosition");
+    const aColor = gl.getAttribLocation(program, "aColor");
     const uMatProj = gl.getUniformLocation(program, "uMatProj");
     const uMatView = gl.getUniformLocation(program, "uMatView");
     const uMatModel = gl.getUniformLocation(program, "uMatModel");
@@ -94,6 +108,10 @@ export function main() {
     const uProjectionMatrix = mat4.perspective(mat4.create(), 45.0, canvas.width / canvas.height, 0.1, 10.0);
     const uViewMatrix = mat4.lookAt(mat4.create(), vec3.fromValues(0, 1, -2), vec3.create(), vec3.fromValues(0, 1, 0));
     const uModelMatrix = mat4.identity(mat4.create());
+
+    const colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 
     /**
      * Game loop.
@@ -116,7 +134,11 @@ export function main() {
         // Bind vertex buffer and configure shader inputs
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(aPosition)
+        gl.enableVertexAttribArray(aPosition);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(aColor);
 
         // Set matrices
         mat4.fromYRotation(uModelMatrix, timestamp / 1000)
