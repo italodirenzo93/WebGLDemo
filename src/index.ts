@@ -1,26 +1,32 @@
 import { mat4, vec3 } from 'gl-matrix';
 
+const DEFAULT_WIDTH = 1920;
+const DEFAULT_HEIGHT = 1080;
+
 export function main() {
     const canvas = document.createElement("canvas");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = DEFAULT_WIDTH;
+    canvas.height = DEFAULT_HEIGHT;
 
     document.body.appendChild(canvas);
 
     const gl = canvas.getContext("webgl2");
 
-    window.addEventListener("resize", () => {
-        gl.viewport(0, 0, window.innerWidth, window.innerHeight);
-    });
+    // window.addEventListener("resize", () => {
+    //     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+    // });
 
     // Vertex shader
     const vertexShaderSource = `
     attribute vec3 aPosition;
 
-    uniform mat4 uModelViewProjection;
+    uniform mat4 uMatProj;
+    uniform mat4 uMatView;
+    uniform mat4 uMatModel;
 
     void main() {
-        gl_Position = uModelViewProjection * vec4(aPosition, 1);
+        mat4 mvp = uMatProj * uMatView * uMatModel;
+        gl_Position = mvp * vec4(aPosition, 1);
     }
     `;
 
@@ -81,11 +87,13 @@ export function main() {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
     const aPosition = gl.getAttribLocation(program, "aPosition");
-    const uModelViewProjection = gl.getUniformLocation(program, "uModelViewProjection");
+    const uMatProj = gl.getUniformLocation(program, "uMatProj");
+    const uMatView = gl.getUniformLocation(program, "uMatView");
+    const uMatModel = gl.getUniformLocation(program, "uMatModel");
 
     const uProjectionMatrix = mat4.perspective(mat4.create(), 45.0, canvas.width / canvas.height, 0.1, 10.0);
     const uViewMatrix = mat4.lookAt(mat4.create(), vec3.fromValues(0, 1, -2), vec3.create(), vec3.fromValues(0, 1, 0));
-    const uModel = mat4.identity(mat4.create());
+    const uModelMatrix = mat4.identity(mat4.create());
 
     /**
      * Game loop.
@@ -110,7 +118,11 @@ export function main() {
         gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(aPosition)
 
-        gl.uniformMatrix4fv(uModelViewProjection, false, mat4.mul(mat4.create(), uProjectionMatrix, uViewMatrix));
+        // Set matrices
+        mat4.fromYRotation(uModelMatrix, timestamp / 1000)
+        gl.uniformMatrix4fv(uMatProj, false, uProjectionMatrix);
+        gl.uniformMatrix4fv(uMatView, false, uViewMatrix);
+        gl.uniformMatrix4fv(uMatModel, false, uModelMatrix);
 
         gl.drawArrays(gl.TRIANGLES, 0, 3);
 
