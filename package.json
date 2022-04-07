@@ -1,0 +1,20 @@
+{
+    "name": "webgl-demo",
+    "private": true,
+    "source": "src/index.html",
+    "author": {
+        "name": "Italo Di Renzo",
+        "email": "italodirenzo93@gmail.com"
+    },
+    "scripts": {
+        "start": "parcel",
+        "build": "parcel build"
+    },
+    "devDependencies": {
+        "@types/gl-matrix": "^3.2.0",
+        "parcel": "^2.4.1"
+    },
+    "dependencies": {
+        "gl-matrix": "^3.4.3"
+    }
+}
