@@ -1,4 +1,6 @@
-function main() {
+import { mat4, vec3 } from 'gl-matrix';
+
+export function main() {
     const canvas = document.createElement("canvas");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -15,8 +17,10 @@ function main() {
     const vertexShaderSource = `
     attribute vec3 aPosition;
 
+    uniform mat4 uModelViewProjection;
+
     void main() {
-        gl_Position = vec4(aPosition, 1);
+        gl_Position = uModelViewProjection * vec4(aPosition, 1);
     }
     `;
 
@@ -77,6 +81,11 @@ function main() {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
     const aPosition = gl.getAttribLocation(program, "aPosition");
+    const uModelViewProjection = gl.getUniformLocation(program, "uModelViewProjection");
+
+    const uProjectionMatrix = mat4.perspective(mat4.create(), 45.0, canvas.width / canvas.height, 0.1, 10.0);
+    const uViewMatrix = mat4.lookAt(mat4.create(), vec3.fromValues(0, 1, -2), vec3.create(), vec3.fromValues(0, 1, 0));
+    const uModel = mat4.identity(mat4.create());
 
     /**
      * Game loop.
@@ -99,7 +108,9 @@ function main() {
         // Bind vertex buffer and configure shader inputs
         gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
         gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(aPosition);
+        gl.enableVertexAttribArray(aPosition)
+
+        gl.uniformMatrix4fv(uModelViewProjection, false, mat4.mul(mat4.create(), uProjectionMatrix, uViewMatrix));
 
         gl.drawArrays(gl.TRIANGLES, 0, 3);
 
@@ -108,5 +119,3 @@ function main() {
 
     requestAnimationFrame(tick);
 }
-
-window.addEventListener('load', main);
