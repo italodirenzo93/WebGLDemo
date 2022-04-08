@@ -3,6 +3,7 @@ import { mat4, vec3 } from "gl-matrix";
 const DEFAULT_WIDTH = 1920;
 const DEFAULT_HEIGHT = 1080;
 const DESIRED_FPS = 60;
+const USE_KEYBOARD = false;
 
 function main(): void {
     const canvas = document.createElement("canvas");
@@ -32,6 +33,13 @@ function main(): void {
     // window.addEventListener("resize", () => {
     //     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
     // });
+    const keys = new Map<string, boolean>();
+    window.addEventListener("keydown", (e) => {
+        keys.set(e.key, true);
+    });
+    window.addEventListener("keyup", (e) => {
+        keys.set(e.key, false);
+    });
 
     // Vertex shader
     const vertexShaderSource = `
@@ -156,7 +164,18 @@ function main(): void {
      * @param deltaTime Time elapsed between the previous frame and the current frame.
      */
     function update(deltaTime: number): void {
-        mat4.rotateY(uModelMatrix, uModelMatrix, deltaTime / 1000);
+        const rad = deltaTime / 1000;
+
+        if (!USE_KEYBOARD) {
+            mat4.rotateY(uModelMatrix, uModelMatrix, rad);
+            return;
+        }
+
+        if (keys.get("ArrowLeft")) {
+            mat4.rotateY(uModelMatrix, uModelMatrix, rad);
+        } else if (keys.get("ArrowRight")) {
+            mat4.rotateY(uModelMatrix, uModelMatrix, -rad);
+        }
     }
 
     /**
