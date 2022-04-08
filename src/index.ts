@@ -1,4 +1,5 @@
 import { mat4, vec3 } from "gl-matrix";
+import { createCube } from "./helpers";
 
 const DEFAULT_WIDTH = 1920;
 const DEFAULT_HEIGHT = 1080;
@@ -109,114 +110,17 @@ function main(): void {
     const uMatView = gl.getUniformLocation(program, "uMatView");
     const uMatModel = gl.getUniformLocation(program, "uMatModel");
 
-    // prettier-ignore
-    const vertices = [
-        // Front face
-        -1.0, -1.0,  1.0,
-         1.0, -1.0,  1.0,
-         1.0,  1.0,  1.0,
-        -1.0,  1.0,  1.0,
-
-        // Back face
-        -1.0, -1.0, -1.0,
-        -1.0,  1.0, -1.0,
-         1.0,  1.0, -1.0,
-         1.0, -1.0, -1.0,
-
-        // Top face
-        -1.0,  1.0, -1.0,
-        -1.0,  1.0,  1.0,
-         1.0,  1.0,  1.0,
-         1.0,  1.0, -1.0,
-
-        // Bottom face
-        -1.0, -1.0, -1.0,
-         1.0, -1.0, -1.0,
-         1.0, -1.0,  1.0,
-        -1.0, -1.0,  1.0,
-
-        // Right face
-         1.0, -1.0, -1.0,
-         1.0,  1.0, -1.0,
-         1.0,  1.0,  1.0,
-         1.0, -1.0,  1.0,
-
-        // Left face
-        -1.0, -1.0, -1.0,
-        -1.0, -1.0,  1.0,
-        -1.0,  1.0,  1.0,
-        -1.0,  1.0, -1.0,
-    ];
-
-    // prettier-ignore
-    const colors = [
-        1.0,  1.0,  1.0,    // Front face: white
-        1.0,  1.0,  1.0,    // Front face: white
-        1.0,  1.0,  1.0,    // Front face: white
-        1.0,  1.0,  1.0,    // Front face: white
-
-        1.0,  0.0,  0.0,    // Back face: red
-        1.0,  0.0,  0.0,    // Back face: red
-        1.0,  0.0,  0.0,    // Back face: red
-        1.0,  0.0,  0.0,    // Back face: red
-
-        0.0,  1.0,  0.0,    // Top face: green
-        0.0,  1.0,  0.0,    // Top face: green
-        0.0,  1.0,  0.0,    // Top face: green
-        0.0,  1.0,  0.0,    // Top face: green
-
-        0.0,  0.0,  1.0,    // Bottom face: blue
-        0.0,  0.0,  1.0,    // Bottom face: blue
-        0.0,  0.0,  1.0,    // Bottom face: blue
-        0.0,  0.0,  1.0,    // Bottom face: blue
-
-        1.0,  1.0,  0.0,    // Right face: yellow
-        1.0,  1.0,  0.0,    // Right face: yellow
-        1.0,  1.0,  0.0,    // Right face: yellow
-        1.0,  1.0,  0.0,    // Right face: yellow
-
-        1.0,  0.0,  1.0,    // Left face: purple
-        1.0,  0.0,  1.0,    // Left face: purple
-        1.0,  0.0,  1.0,    // Left face: purple
-        1.0,  0.0,  1.0,    // Left face: purple
-    ];
-
-    // prettier-ignore
-    const indices = [
-        0,  1,  2,      0,  2,  3,    // front
-        4,  5,  6,      4,  6,  7,    // back
-        8,  9,  10,     8,  10, 11,   // top
-        12, 13, 14,     12, 14, 15,   // bottom
-        16, 17, 18,     16, 18, 19,   // right
-        20, 21, 22,     20, 22, 23,   // left
-    ];
-
-    // Vertex buffer
-    const vertexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-
-    const colorBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-
-    const indexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    gl.bufferData(
-        gl.ELEMENT_ARRAY_BUFFER,
-        new Uint16Array(indices),
-        gl.STATIC_DRAW
-    );
-
     // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#always_enable_vertex_attrib_0_as_an_array
     gl.enableVertexAttribArray(0);
 
+    const { vertices, colors, elements, elementCount } = createCube(gl);
+
     // Bind vertex buffer and configure shader inputs
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertices);
     gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(aPosition);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, colors);
     gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(aColor);
 
@@ -276,8 +180,8 @@ function main(): void {
         gl.uniformMatrix4fv(uMatView, false, uViewMatrix);
         gl.uniformMatrix4fv(uMatModel, false, uModelMatrix);
 
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-        gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elements);
+        gl.drawElements(gl.TRIANGLES, elementCount, gl.UNSIGNED_SHORT, 0);
     }
 
     const interval = DESIRED_FPS / 1000;
