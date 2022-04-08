@@ -1,16 +1,33 @@
-import { mat4, vec3 } from 'gl-matrix';
+import { mat4, vec3 } from "gl-matrix";
 
 const DEFAULT_WIDTH = 1920;
 const DEFAULT_HEIGHT = 1080;
+const DESIRED_FPS = 60;
 
-export function main() {
+function main(): void {
     const canvas = document.createElement("canvas");
     canvas.width = DEFAULT_WIDTH;
     canvas.height = DEFAULT_HEIGHT;
 
     document.body.appendChild(canvas);
 
-    const gl = canvas.getContext("webgl2");
+    let gl: WebGLRenderingContext | WebGL2RenderingContext;
+
+    gl = canvas.getContext("webgl2");
+    if (!gl) {
+        gl = canvas.getContext("webgl");
+    }
+    if (!gl) {
+        throw new Error("Your browser does not support WebGL.");
+    }
+
+    // Print driver info
+    console.info(
+        `${gl.getParameter(gl.VERSION)}\n` +
+            `${gl.getParameter(gl.SHADING_LANGUAGE_VERSION)}\n` +
+            `Vendor: ${gl.getParameter(gl.VENDOR)}\n` +
+            `Renderer: ${gl.getParameter(gl.RENDERER)}`
+    );
 
     // window.addEventListener("resize", () => {
     //     gl.viewport(0, 0, window.innerWidth, window.innerHeight);
@@ -40,7 +57,10 @@ export function main() {
     gl.compileShader(vertexShader);
 
     if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-        console.error("Error compiling vertex shader.", gl.getShaderInfoLog(vertexShader));
+        console.error(
+            "Error compiling vertex shader.",
+            gl.getShaderInfoLog(vertexShader)
+        );
         gl.deleteShader(vertexShader);
         return;
     }
@@ -59,7 +79,10 @@ export function main() {
     gl.compileShader(fragmentShader);
 
     if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
-        console.error("Error compiling fragment shader.", gl.getShaderInfoLog(fragmentShader));
+        console.error(
+            "Error compiling fragment shader.",
+            gl.getShaderInfoLog(fragmentShader)
+        );
         gl.deleteShader(fragmentShader);
         return;
     }
@@ -71,7 +94,10 @@ export function main() {
     gl.linkProgram(program);
 
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error("Error linking shader program.", gl.getProgramInfoLog(program));
+        console.error(
+            "Error linking shader program.",
+            gl.getProgramInfoLog(program)
+        );
         gl.deleteProgram(program);
         return;
     }
@@ -82,19 +108,20 @@ export function main() {
     gl.deleteShader(vertexShader);
     gl.deleteShader(fragmentShader);
 
-    // Vertex buffer
+    // prettier-ignore
     const vertices = [
         -0.5, -0.5, 0.0,
         0.0, 0.5, 0.0,
-        0.5, -0.5, 0.0,
+        0.5, -0.5, 0.0
     ];
-
+    // prettier-ignore
     const colors = [
         1.0, 0.0, 0.0,
         0.0, 1.0, 0.0,
-        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0
     ];
 
+    // Vertex buffer
     const vertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
@@ -105,8 +132,19 @@ export function main() {
     const uMatView = gl.getUniformLocation(program, "uMatView");
     const uMatModel = gl.getUniformLocation(program, "uMatModel");
 
-    const uProjectionMatrix = mat4.perspective(mat4.create(), 45.0, canvas.width / canvas.height, 0.1, 10.0);
-    const uViewMatrix = mat4.lookAt(mat4.create(), vec3.fromValues(0, 1, -2), vec3.create(), vec3.fromValues(0, 1, 0));
+    const uProjectionMatrix = mat4.perspective(
+        mat4.create(),
+        45.0,
+        canvas.width / canvas.height,
+        0.1,
+        10.0
+    );
+    const uViewMatrix = mat4.lookAt(
+        mat4.create(),
+        vec3.fromValues(0, 1, -2),
+        vec3.create(),
+        vec3.fromValues(0, 1, 0)
+    );
     const uModelMatrix = mat4.identity(mat4.create());
 
     const colorBuffer = gl.createBuffer();
@@ -114,10 +152,17 @@ export function main() {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 
     /**
-     * Game loop.
-     * @param timestamp Ticks elapsed since start
+     * Update the world.
+     * @param deltaTime Time elapsed between the previous frame and the current frame.
      */
-    function tick(timestamp: DOMHighResTimeStamp) {
+    function update(deltaTime: number): void {
+        mat4.rotateY(uModelMatrix, uModelMatrix, deltaTime / 1000);
+    }
+
+    /**
+     * Render the world.
+     */
+    function render(): void {
         // Set clear color to black
         gl.clearColor(0, 0, 0, 1);
 
@@ -141,15 +186,37 @@ export function main() {
         gl.enableVertexAttribArray(aColor);
 
         // Set matrices
-        mat4.fromYRotation(uModelMatrix, timestamp / 1000)
         gl.uniformMatrix4fv(uMatProj, false, uProjectionMatrix);
         gl.uniformMatrix4fv(uMatView, false, uViewMatrix);
         gl.uniformMatrix4fv(uMatModel, false, uModelMatrix);
 
         gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+
+    const interval = DESIRED_FPS / 1000;
+    let lastFrameTime: DOMHighResTimeStamp;
+
+    /**
+     * Game loop.
+     * @param timestamp Ticks elapsed since start
+     */
+    function tick(timestamp: DOMHighResTimeStamp): void {
+        if (!lastFrameTime) {
+            lastFrameTime = timestamp;
+        }
 
         requestAnimationFrame(tick);
+
+        const deltaTime = timestamp - lastFrameTime;
+
+        if (deltaTime > interval) {
+            update(deltaTime);
+            lastFrameTime = timestamp - (deltaTime % interval);
+            render();
+        }
     }
 
     requestAnimationFrame(tick);
 }
+
+window.addEventListener("load", main);
