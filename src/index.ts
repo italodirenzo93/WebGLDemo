@@ -1,5 +1,5 @@
 import { mat4, vec3 } from "gl-matrix";
-import { createCube } from "./helpers";
+import { createCube, loadTexture } from "./helpers";
 
 const DEFAULT_WIDTH = 1920;
 const DEFAULT_HEIGHT = 1080;
@@ -43,8 +43,10 @@ function main(): void {
     const vertexShaderSource = `
     attribute vec3 aPosition;
     attribute vec3 aColor;
+    attribute vec2 aTextureCoord;
 
     varying lowp vec4 vColor;
+    varying highp vec2 vTextureCoord;
 
     uniform mat4 uMatProj;
     uniform mat4 uMatView;
@@ -54,7 +56,8 @@ function main(): void {
         mat4 mvp = uMatProj * uMatView * uMatModel;
 
         gl_Position = mvp * vec4(aPosition, 1);
-        vColor = vec4(aColor, 1);
+        // vColor = vec4(aColor, 1);
+        vTextureCoord = aTextureCoord;
     }
     `;
 
@@ -65,9 +68,12 @@ function main(): void {
     // Fragment shader
     const fragmentShaderSource = `
     varying lowp vec4 vColor;
+    varying highp vec2 vTextureCoord;
+
+    uniform sampler2D uSampler;
 
     void main() {
-        gl_FragColor = vColor;
+        gl_FragColor = texture2D(uSampler, vTextureCoord);
     }
     `;
 
@@ -104,25 +110,40 @@ function main(): void {
     gl.deleteShader(vertexShader);
     gl.deleteShader(fragmentShader);
 
+    // Use shader program
+    gl.useProgram(program);
+
     const aPosition = gl.getAttribLocation(program, "aPosition");
     const aColor = gl.getAttribLocation(program, "aColor");
+    const aTextureCoord = gl.getAttribLocation(program, "aTextureCoord");
     const uMatProj = gl.getUniformLocation(program, "uMatProj");
     const uMatView = gl.getUniformLocation(program, "uMatView");
     const uMatModel = gl.getUniformLocation(program, "uMatModel");
 
+    const uSampler = gl.getUniformLocation(program, "uSampler");
+
     // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#always_enable_vertex_attrib_0_as_an_array
     gl.enableVertexAttribArray(0);
 
-    const { vertices, colors, elements, elementCount } = createCube(gl);
+    const { vertices, texCoords, elements, elementCount } = createCube(gl);
+    const texture = loadTexture(gl, "./cubetexture.png");
 
     // Bind vertex buffer and configure shader inputs
     gl.bindBuffer(gl.ARRAY_BUFFER, vertices);
     gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(aPosition);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, colors);
-    gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(aColor);
+    // gl.bindBuffer(gl.ARRAY_BUFFER, colors);
+    // gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 0, 0);
+    // gl.enableVertexAttribArray(aColor);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoords);
+    gl.vertexAttribPointer(aTextureCoord, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(aTextureCoord);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.uniform1i(uSampler, 0);
 
     const uProjectionMatrix = mat4.perspective(
         mat4.create(),
@@ -164,9 +185,6 @@ function main(): void {
     // Enable deepth testing
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
-
-    // Use shader program
-    gl.useProgram(program);
 
     /**
      * Render the world.
