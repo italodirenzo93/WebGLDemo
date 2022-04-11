@@ -1,18 +1,11 @@
 import { mat4, vec3 } from "gl-matrix";
 import { createCube, loadTexture } from "./helpers";
+import { ShaderProgram } from "./ShaderProgram";
 
-const DEFAULT_WIDTH = 1920;
-const DEFAULT_HEIGHT = 1080;
 const DESIRED_FPS = 60;
 const USE_KEYBOARD = false;
 
-function main(): void {
-    const canvas = document.createElement("canvas");
-    canvas.width = DEFAULT_WIDTH;
-    canvas.height = DEFAULT_HEIGHT;
-
-    document.body.appendChild(canvas);
-
+export default function main(canvas: HTMLCanvasElement): void {
     let gl: WebGLRenderingContext | WebGL2RenderingContext;
 
     gl = canvas.getContext("webgl2");
@@ -24,12 +17,15 @@ function main(): void {
     }
 
     // Print driver info
-    console.info(
+    const glInfo =
         `${gl.getParameter(gl.VERSION)}\n` +
-            `${gl.getParameter(gl.SHADING_LANGUAGE_VERSION)}\n` +
-            `Vendor: ${gl.getParameter(gl.VENDOR)}\n` +
-            `Renderer: ${gl.getParameter(gl.RENDERER)}`
-    );
+        `${gl.getParameter(gl.SHADING_LANGUAGE_VERSION)}\n` +
+        `Vendor: ${gl.getParameter(gl.VENDOR)}\n` +
+        `Renderer: ${gl.getParameter(gl.RENDERER)}`;
+
+    console.info(glInfo);
+
+    document.getElementById("glinfo").innerHTML = glInfo.replace(/\n/g, "<br>");
 
     const keys = new Map<string, boolean>();
     window.addEventListener("keydown", (e) => {
@@ -39,88 +35,8 @@ function main(): void {
         keys.set(e.key, false);
     });
 
-    // Vertex shader
-    const vertexShaderSource = `
-    attribute vec3 aPosition;
-    attribute vec3 aColor;
-    attribute vec2 aTextureCoord;
-
-    varying lowp vec4 vColor;
-    varying highp vec2 vTextureCoord;
-
-    uniform mat4 uMatProj;
-    uniform mat4 uMatView;
-    uniform mat4 uMatModel;
-
-    void main() {
-        mat4 mvp = uMatProj * uMatView * uMatModel;
-
-        gl_Position = mvp * vec4(aPosition, 1);
-        // vColor = vec4(aColor, 1);
-        vTextureCoord = aTextureCoord;
-    }
-    `;
-
-    const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vertexShader, vertexShaderSource.trim());
-    gl.compileShader(vertexShader);
-
-    // Fragment shader
-    const fragmentShaderSource = `
-    varying lowp vec4 vColor;
-    varying highp vec2 vTextureCoord;
-
-    uniform sampler2D uSampler;
-
-    void main() {
-        gl_FragColor = texture2D(uSampler, vTextureCoord);
-    }
-    `;
-
-    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(fragmentShader, fragmentShaderSource.trim());
-    gl.compileShader(fragmentShader);
-
-    // Shader program
-    const program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error(
-            "Error linking shader program.",
-            gl.getProgramInfoLog(program)
-        );
-        console.error("Vertex shader log: ", gl.getShaderInfoLog(vertexShader));
-        console.error(
-            "Fragment shader log: ",
-            gl.getShaderInfoLog(fragmentShader)
-        );
-
-        gl.deleteProgram(program);
-        gl.deleteShader(vertexShader);
-        gl.deleteShader(fragmentShader);
-        return;
-    }
-
-    gl.detachShader(program, vertexShader);
-    gl.detachShader(program, fragmentShader);
-
-    gl.deleteShader(vertexShader);
-    gl.deleteShader(fragmentShader);
-
-    // Use shader program
-    gl.useProgram(program);
-
-    const aPosition = gl.getAttribLocation(program, "aPosition");
-    const aColor = gl.getAttribLocation(program, "aColor");
-    const aTextureCoord = gl.getAttribLocation(program, "aTextureCoord");
-    const uMatProj = gl.getUniformLocation(program, "uMatProj");
-    const uMatView = gl.getUniformLocation(program, "uMatView");
-    const uMatModel = gl.getUniformLocation(program, "uMatModel");
-
-    const uSampler = gl.getUniformLocation(program, "uSampler");
+    const shaderProgram = new ShaderProgram(gl);
+    shaderProgram.use();
 
     // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#always_enable_vertex_attrib_0_as_an_array
     gl.enableVertexAttribArray(0);
@@ -128,22 +44,9 @@ function main(): void {
     const { vertices, texCoords, elements, elementCount } = createCube(gl);
     const texture = loadTexture(gl, "./cubetexture.png");
 
-    // Bind vertex buffer and configure shader inputs
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertices);
-    gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(aPosition);
-
-    // gl.bindBuffer(gl.ARRAY_BUFFER, colors);
-    // gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, 0, 0);
-    // gl.enableVertexAttribArray(aColor);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, texCoords);
-    gl.vertexAttribPointer(aTextureCoord, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(aTextureCoord);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.uniform1i(uSampler, 0);
+    shaderProgram.setVertexData(vertices);
+    shaderProgram.setTextureCoordinates(texCoords);
+    shaderProgram.setTexture(texture);
 
     const uProjectionMatrix = mat4.perspective(
         mat4.create(),
@@ -168,23 +71,26 @@ function main(): void {
         const rad = deltaTime / 1000;
 
         if (!USE_KEYBOARD) {
-            mat4.rotate(uModelMatrix, uModelMatrix, rad, [0, 1, 1]);
+            mat4.rotate(uModelMatrix, uModelMatrix, rad, [1, 1, 1]);
             return;
         }
 
         if (keys.get("ArrowLeft")) {
-            mat4.rotateY(uModelMatrix, uModelMatrix, rad);
-        } else if (keys.get("ArrowRight")) {
             mat4.rotateY(uModelMatrix, uModelMatrix, -rad);
+        } else if (keys.get("ArrowRight")) {
+            mat4.rotateY(uModelMatrix, uModelMatrix, rad);
         }
     }
 
     // Set clear color to black
     gl.clearColor(0, 0, 0, 1);
 
-    // Enable deepth testing
+    // Enable depth testing
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
+
+    shaderProgram.setProjectionMatrix(uProjectionMatrix);
+    shaderProgram.setViewMatrix(uViewMatrix);
 
     /**
      * Render the world.
@@ -194,9 +100,7 @@ function main(): void {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         // Set matrices
-        gl.uniformMatrix4fv(uMatProj, false, uProjectionMatrix);
-        gl.uniformMatrix4fv(uMatView, false, uViewMatrix);
-        gl.uniformMatrix4fv(uMatModel, false, uModelMatrix);
+        shaderProgram.setModelMatrix(uModelMatrix);
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elements);
         gl.drawElements(gl.TRIANGLES, elementCount, gl.UNSIGNED_SHORT, 0);
@@ -227,5 +131,3 @@ function main(): void {
 
     requestAnimationFrame(tick);
 }
-
-window.addEventListener("load", main);

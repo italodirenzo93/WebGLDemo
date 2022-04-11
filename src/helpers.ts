@@ -1,6 +1,5 @@
 export interface IPrimitiveBuffers {
     vertices: WebGLBuffer;
-    colors: WebGLBuffer;
     texCoords: WebGLBuffer;
     elements: WebGLBuffer;
     elementCount: number;
@@ -46,39 +45,6 @@ const cubeVertices = [
 ] as const;
 
 // prettier-ignore
-const cubeColors = [
-    1.0,  1.0,  1.0,    // Front face: white
-    1.0,  1.0,  1.0,    // Front face: white
-    1.0,  1.0,  1.0,    // Front face: white
-    1.0,  1.0,  1.0,    // Front face: white
-
-    1.0,  0.0,  0.0,    // Back face: red
-    1.0,  0.0,  0.0,    // Back face: red
-    1.0,  0.0,  0.0,    // Back face: red
-    1.0,  0.0,  0.0,    // Back face: red
-
-    0.0,  1.0,  0.0,    // Top face: green
-    0.0,  1.0,  0.0,    // Top face: green
-    0.0,  1.0,  0.0,    // Top face: green
-    0.0,  1.0,  0.0,    // Top face: green
-
-    0.0,  0.0,  1.0,    // Bottom face: blue
-    0.0,  0.0,  1.0,    // Bottom face: blue
-    0.0,  0.0,  1.0,    // Bottom face: blue
-    0.0,  0.0,  1.0,    // Bottom face: blue
-
-    1.0,  1.0,  0.0,    // Right face: yellow
-    1.0,  1.0,  0.0,    // Right face: yellow
-    1.0,  1.0,  0.0,    // Right face: yellow
-    1.0,  1.0,  0.0,    // Right face: yellow
-
-    1.0,  0.0,  1.0,    // Left face: purple
-    1.0,  0.0,  1.0,    // Left face: purple
-    1.0,  0.0,  1.0,    // Left face: purple
-    1.0,  0.0,  1.0,    // Left face: purple
-] as const;
-
-// prettier-ignore
 const cubeIndices = [
     0,  1,  2,      0,  2,  3,    // front
     4,  5,  6,      4,  6,  7,    // back
@@ -120,7 +86,7 @@ const cubeTextureCoordinates = [
     1.0,  0.0,
     1.0,  1.0,
     0.0,  1.0,
-  ];
+] as const;
 
 export function createCube(gl: WebGLRenderingContext): IPrimitiveBuffers {
     const vertexBuffer = gl.createBuffer();
@@ -128,14 +94,6 @@ export function createCube(gl: WebGLRenderingContext): IPrimitiveBuffers {
     gl.bufferData(
         gl.ARRAY_BUFFER,
         new Float32Array(cubeVertices),
-        gl.STATIC_DRAW
-    );
-
-    const colorBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-    gl.bufferData(
-        gl.ARRAY_BUFFER,
-        new Float32Array(cubeColors),
         gl.STATIC_DRAW
     );
 
@@ -157,7 +115,6 @@ export function createCube(gl: WebGLRenderingContext): IPrimitiveBuffers {
 
     return {
         vertices: vertexBuffer,
-        colors: colorBuffer,
         texCoords: texCoordBuffer,
         elements: indexBuffer,
         elementCount: 36 /*indices.length*/,
@@ -169,6 +126,17 @@ export function loadTexture(
     url: string
 ): WebGLTexture {
     const texture = gl.createTexture();
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        1,
+        1,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        new Uint8Array([0, 0, 255, 255]) // solid blue
+    );
 
     const image = new Image();
     image.onload = () => {
@@ -210,6 +178,6 @@ export function loadTexture(
     return texture;
 }
 
-function isPowerOf2(value: number): boolean {
+export function isPowerOf2(value: number): boolean {
     return (value & (value - 1)) == 0;
 }
