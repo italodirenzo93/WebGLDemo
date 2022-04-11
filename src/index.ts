@@ -6,12 +6,10 @@ const DESIRED_FPS = 60;
 const USE_KEYBOARD = false;
 
 export default function main(canvas: HTMLCanvasElement): void {
-    let gl: WebGLRenderingContext | WebGL2RenderingContext;
-
-    gl = canvas.getContext("webgl2");
-    if (!gl) {
-        gl = canvas.getContext("webgl");
-    }
+    const gl =
+        canvas.getContext("webgl2") ??
+        canvas.getContext("webgl") ??
+        (canvas.getContext("experimental-webgl") as WebGLRenderingContext);
     if (!gl) {
         throw new Error("Your browser does not support WebGL.");
     }
@@ -24,8 +22,6 @@ export default function main(canvas: HTMLCanvasElement): void {
         `Renderer: ${gl.getParameter(gl.RENDERER)}`;
 
     console.info(glInfo);
-
-    document.getElementById("glinfo").innerHTML = glInfo.replace(/\n/g, "<br>");
 
     const keys = new Map<string, boolean>();
     window.addEventListener("keydown", (e) => {
