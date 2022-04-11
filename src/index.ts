@@ -6,12 +6,9 @@ const DESIRED_FPS = 60;
 const USE_KEYBOARD = false;
 
 export default async function main(canvas: HTMLCanvasElement): Promise<void> {
-    const gl =
-        canvas.getContext("webgl2") ??
-        canvas.getContext("webgl") ??
-        (canvas.getContext("experimental-webgl") as WebGLRenderingContext);
+    const gl = canvas.getContext("webgl2");
     if (!gl) {
-        throw new Error("Your browser does not support WebGL.");
+        throw new Error("Your browser does not support WebGL 2.");
     }
 
     // Print driver info

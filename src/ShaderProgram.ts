@@ -1,33 +1,49 @@
 import { ReadonlyMat4 } from "gl-matrix";
 import { minifyShaderCode } from "./helpers";
 
+interface UniformBufferMVP {
+    uMatProj: ReadonlyMat4;
+    uMatView: ReadonlyMat4;
+    uMatModel: ReadonlyMat4;
+}
+
 // Vertex shader
-const vertexShaderSource = `
-attribute vec3 aPosition;
-attribute vec3 aColor;
-attribute vec2 aTextureCoord;
+const vertexShaderSource = `#version 300 es
+#pragma vscode_glsllint_stage: vert
 
-varying highp vec2 vTextureCoord;
+layout(location=0) in vec3 a_Position;
+layout(location=1) in vec2 a_TextureCoord;
 
-uniform mat4 uMatProj;
-uniform mat4 uMatView;
-uniform mat4 uMatModel;
+out vec2 textureCoord;
+
+uniform mat4 u_MatProj;
+uniform mat4 u_MatView;
+uniform mat4 u_MatModel;
+
+// uniform MVP {
+//     mat4 uMatProj;
+//     mat4 uMatView;
+//     mat4 uMatModel;
+// };
 
 void main() {
-    mat4 mvp = uMatProj * uMatView * uMatModel;
-
-    gl_Position = mvp * vec4(aPosition, 1);
-    vTextureCoord = aTextureCoord;
+    gl_Position = u_MatProj * u_MatView * u_MatModel * vec4(a_Position, 1);
+    textureCoord = a_TextureCoord;
 }`;
 
 // Fragment shader
-const fragmentShaderSource = `
-varying highp vec2 vTextureCoord;
+const fragmentShaderSource = `#version 300 es
+#pragma vscode_glsllint_stage: frag
 
-uniform sampler2D uSampler;
+precision mediump float;
+
+in vec2 textureCoord;
+out vec4 fragColor;
+
+uniform sampler2D u_Sampler;
 
 void main() {
-    gl_FragColor = texture2D(uSampler, vTextureCoord);
+    fragColor = texture(u_Sampler, textureCoord);
 }`;
 
 export class ShaderProgram {
@@ -41,7 +57,9 @@ export class ShaderProgram {
     private static s_uMatModel: WebGLUniformLocation;
     private static s_uSampler: WebGLUniformLocation;
 
-    constructor(private readonly gl: WebGLRenderingContext) {
+    // private static s_uniformBuffer: WebGLBuffer;
+
+    constructor(private readonly gl: WebGL2RenderingContext) {
         // If the program hasn't been compiled and linked already do it now
         if (!ShaderProgram.s_program) {
             ShaderProgram.compileAndLink(gl);
@@ -68,6 +86,7 @@ export class ShaderProgram {
                 0
             );
             this.gl.enableVertexAttribArray(ShaderProgram.s_aPosition);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
         } else {
             this.gl.disableVertexAttribArray(ShaderProgram.s_aPosition);
         }
@@ -85,6 +104,7 @@ export class ShaderProgram {
                 0
             );
             this.gl.enableVertexAttribArray(ShaderProgram.s_aTextureCoord);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
         } else {
             this.gl.disableVertexAttribArray(ShaderProgram.s_aTextureCoord);
         }
@@ -102,13 +122,13 @@ export class ShaderProgram {
         this.gl.uniformMatrix4fv(ShaderProgram.s_uMatModel, false, matrix);
     }
 
-    setTexture(texture: WebGLTexture) {
+    setTexture(texture: WebGLTexture): void {
         this.gl.activeTexture(this.gl.TEXTURE0);
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
         this.gl.uniform1i(ShaderProgram.s_uSampler, 0);
     }
 
-    private static compileAndLink(gl: WebGLRenderingContext): void {
+    private static compileAndLink(gl: WebGL2RenderingContext): void {
         const vertexShader = gl.createShader(gl.VERTEX_SHADER);
         gl.shaderSource(vertexShader, minifyShaderCode(vertexShaderSource));
         gl.compileShader(vertexShader);
@@ -150,34 +170,50 @@ export class ShaderProgram {
         gl.deleteShader(fragmentShader);
 
         // Get locations
-        ShaderProgram.s_aPosition = gl.getAttribLocation(
-            ShaderProgram.s_program,
-            "aPosition"
-        );
-
-        ShaderProgram.s_aTextureCoord = gl.getAttribLocation(
-            ShaderProgram.s_program,
-            "aTextureCoord"
-        );
+        ShaderProgram.s_aPosition = 0;
+        ShaderProgram.s_aTextureCoord = 1;
 
         ShaderProgram.s_uMatProj = gl.getUniformLocation(
             ShaderProgram.s_program,
-            "uMatProj"
+            "u_MatProj"
         );
 
         ShaderProgram.s_uMatView = gl.getUniformLocation(
             ShaderProgram.s_program,
-            "uMatView"
+            "u_MatView"
         );
 
         ShaderProgram.s_uMatModel = gl.getUniformLocation(
             ShaderProgram.s_program,
-            "uMatModel"
+            "u_MatModel"
         );
 
         ShaderProgram.s_uSampler = gl.getUniformLocation(
             ShaderProgram.s_program,
-            "uSampler"
+            "u_Sampler"
         );
+
+        // Uniform buffer
+        // {
+        //     const blockIndex = gl.getUniformBlockIndex(
+        //         ShaderProgram.s_program,
+        //         "MVP"
+        //     );
+        //     const blockSize = gl.getActiveUniformBlockParameter(
+        //         ShaderProgram.s_program,
+        //         blockIndex,
+        //         gl.UNIFORM_BLOCK_DATA_SIZE
+        //     );
+
+        //     const uniformBuffer = gl.createBuffer();
+        //     gl.bindBuffer(gl.UNIFORM_BUFFER, uniformBuffer);
+        //     gl.bufferData(gl.UNIFORM_BUFFER, blockSize, gl.DYNAMIC_DRAW);
+        //     gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+        //     // Bind the buffer to a binding point
+        //     // Think of it as storing the buffer into a special UBO ArrayList
+        //     // The second argument is the index you want to store your Uniform Buffer in
+        //     // Let's say you have 2 unique UBO, you'll store the first one in index 0 and the second one in index 1
+        //     gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, uniformBuffer);
+        // }
     }
 }
