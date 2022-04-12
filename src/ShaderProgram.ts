@@ -1,19 +1,6 @@
 import { ReadonlyMat4 } from "gl-matrix";
 import { minifyShaderCode } from "./helpers";
 
-const uniformNames = ["u_MatProj", "u_MatView", "u_MatModel"] as const;
-
-export type UniformBufferMVP = Record<
-    typeof uniformNames[number],
-    ReadonlyMat4
->;
-
-// interface UniformBufferMVP {
-//     uMatProj: ReadonlyMat4;
-//     uMatView: ReadonlyMat4;
-//     uMatModel: ReadonlyMat4;
-// }
-
 // Vertex shader
 const vertexShaderSource = `#version 300 es
 #pragma vscode_glsllint_stage: vert
@@ -49,7 +36,10 @@ void main() {
     fragColor = texture(u_Sampler, textureCoord);
 }`;
 
-export interface UniformVariableInfo {
+const uniformNames = ["u_MatProj", "u_MatView", "u_MatModel"] as const;
+type UniformName = typeof uniformNames[number];
+
+interface UniformVariableInfo {
     index: number;
     offset: number;
 }
@@ -63,21 +53,18 @@ export class ShaderProgram {
     private static s_uSampler: WebGLUniformLocation;
     private static s_uniformBuffer: WebGLBuffer;
 
-    private static s_uniformInfo: Record<
-        typeof uniformNames[number],
-        UniformVariableInfo
-    > = {
+    private static s_uniformInfo: Record<UniformName, UniformVariableInfo> = {
         u_MatProj: {
-            index: 0,
-            offset: 0,
+            index: -1,
+            offset: -1,
         },
         u_MatView: {
-            index: 0,
-            offset: 0,
+            index: -1,
+            offset: -1,
         },
         u_MatModel: {
-            index: 0,
-            offset: 0,
+            index: -1,
+            offset: -1,
         },
     };
 
@@ -108,7 +95,7 @@ export class ShaderProgram {
                 0
             );
             this.gl.enableVertexAttribArray(ShaderProgram.s_aPosition);
-            // this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
         } else {
             this.gl.disableVertexAttribArray(ShaderProgram.s_aPosition);
         }
@@ -126,7 +113,7 @@ export class ShaderProgram {
                 0
             );
             this.gl.enableVertexAttribArray(ShaderProgram.s_aTextureCoord);
-            // this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
+            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null);
         } else {
             this.gl.disableVertexAttribArray(ShaderProgram.s_aTextureCoord);
         }
@@ -251,10 +238,9 @@ export class ShaderProgram {
 
     private static setUniformMatrix(
         gl: WebGL2RenderingContext,
-        name: typeof uniformNames[number],
+        name: UniformName,
         matrix: ReadonlyMat4
     ): void {
-        // console.log(name, "offset", ShaderProgram.s_uniformInfo[name].offset);
         gl.bindBuffer(gl.UNIFORM_BUFFER, ShaderProgram.s_uniformBuffer);
 
         gl.bufferSubData(
