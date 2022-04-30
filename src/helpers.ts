@@ -124,8 +124,10 @@ export function createCube(gl: WebGLRenderingContext): IPrimitiveBuffers {
 export function loadTexture(
     gl: WebGLRenderingContext,
     url: string
-): WebGLTexture {
+): Promise<WebGLTexture> {
     const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
     gl.texImage2D(
         gl.TEXTURE_2D,
         0,
@@ -139,45 +141,90 @@ export function loadTexture(
     );
 
     const image = new Image();
-    image.onload = () => {
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texImage2D(
-            gl.TEXTURE_2D,
-            0,
-            gl.RGBA,
-            gl.RGBA,
-            gl.UNSIGNED_BYTE,
-            // @ts-ignore
-            image
-        );
 
-        // WebGL1 has different requirements for power of 2 images
-        // vs non power of 2 images so check if the image is a
-        // power of 2 in both dimensions.
-        if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
-            // Yes, it's a power of 2. Generate mips.
-            gl.generateMipmap(gl.TEXTURE_2D);
-        } else {
-            // No, it's not a power of 2. Turn off mips and set
-            // wrapping to clamp to edge
-            gl.texParameteri(
+    return new Promise((resolve, reject) => {
+        
+        image.onload = () => {
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(
                 gl.TEXTURE_2D,
-                gl.TEXTURE_WRAP_S,
-                gl.CLAMP_TO_EDGE
+                0,
+                gl.RGBA,
+                gl.RGBA,
+                gl.UNSIGNED_BYTE,
+                // @ts-ignore
+                image
             );
-            gl.texParameteri(
-                gl.TEXTURE_2D,
-                gl.TEXTURE_WRAP_T,
-                gl.CLAMP_TO_EDGE
-            );
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        }
-    };
-    image.src = url;
+    
+            generateMipMaps(gl, image);
 
-    return texture;
+            resolve(texture);
+        };
+
+        image.onerror = (err) => {
+            gl.bindTexture(gl.TEXTURE_2D, null);
+            gl.deleteTexture(texture);
+            reject(err);
+        };
+
+        image.src = url;
+    });
+}
+
+export function loadTextureFromElement(gl: WebGLRenderingContext, image: HTMLImageElement): Promise<WebGLTexture> {
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    return new Promise((resolve, reject) => {
+
+        image.addEventListener('load', () => {
+            gl.texImage2D(
+                gl.TEXTURE_2D,
+                0,
+                gl.RGBA,
+                gl.RGBA,
+                gl.UNSIGNED_BYTE,
+                image
+            );
+        
+            generateMipMaps(gl, image);
+    
+            resolve(texture);
+        });
+    
+        image.addEventListener('error', (err) => {
+            gl.bindTexture(gl.TEXTURE_2D, null);
+            gl.deleteTexture(texture);
+            reject(err);
+        });
+
+    });
 }
 
 export function isPowerOf2(value: number): boolean {
     return (value & (value - 1)) == 0;
+}
+
+export function generateMipMaps(gl: WebGLRenderingContext, image: HTMLImageElement): void {
+    // WebGL1 has different requirements for power of 2 images
+    // vs non power of 2 images so check if the image is a
+    // power of 2 in both dimensions.
+    if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+        // Yes, it's a power of 2. Generate mips.
+        gl.generateMipmap(gl.TEXTURE_2D);
+    } else {
+        // No, it's not a power of 2. Turn off mips and set
+        // wrapping to clamp to edge
+        gl.texParameteri(
+            gl.TEXTURE_2D,
+            gl.TEXTURE_WRAP_S,
+            gl.CLAMP_TO_EDGE
+        );
+        gl.texParameteri(
+            gl.TEXTURE_2D,
+            gl.TEXTURE_WRAP_T,
+            gl.CLAMP_TO_EDGE
+        );
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    }
 }

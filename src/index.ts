@@ -1,11 +1,11 @@
 import { mat4, vec3 } from "gl-matrix";
-import { createCube, loadTexture } from "./helpers";
+import { createCube, loadTexture, loadTextureFromElement } from "./helpers";
 import { ShaderProgram } from "./ShaderProgram";
 
 const DESIRED_FPS = 60;
 const USE_KEYBOARD = false;
 
-export default function main(canvas: HTMLCanvasElement): void {
+export default async function main(canvas: HTMLCanvasElement): Promise<void> {
     const gl =
         canvas.getContext("webgl2") ??
         canvas.getContext("webgl") ??
@@ -38,7 +38,7 @@ export default function main(canvas: HTMLCanvasElement): void {
     gl.enableVertexAttribArray(0);
 
     const { vertices, texCoords, elements, elementCount } = createCube(gl);
-    const texture = loadTexture(gl, "./cubetexture.png");
+    const texture = await loadTextureFromElement(gl, document.getElementById("cube-texture") as HTMLImageElement);
 
     shaderProgram.setVertexData(vertices);
     shaderProgram.setTextureCoordinates(texCoords);
