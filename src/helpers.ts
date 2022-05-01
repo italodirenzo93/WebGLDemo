@@ -1,4 +1,4 @@
-export interface IPrimitiveBuffers {
+export interface GeometricPrimitive {
     vertices: WebGLBuffer;
     texCoords: WebGLBuffer;
     elements: WebGLBuffer;
@@ -88,7 +88,7 @@ const cubeTextureCoordinates = [
     0.0,  1.0,
 ] as const;
 
-export function createCube(gl: WebGLRenderingContext): IPrimitiveBuffers {
+export function createCube(gl: WebGLRenderingContext): GeometricPrimitive {
     const vertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     gl.bufferData(
@@ -227,4 +227,11 @@ export function generateMipMaps(gl: WebGLRenderingContext, image: HTMLImageEleme
         );
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     }
+}
+
+export function minifyShaderCode(code: string): string {
+    let optimized = code.replace(/\n/g, '');
+    optimized = optimized.replace(/\t/g, '');
+    optimized = optimized.replace(/\s{2,}/g, '');
+    return optimized;
 }

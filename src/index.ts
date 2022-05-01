@@ -1,5 +1,5 @@
 import { mat4, vec3 } from "gl-matrix";
-import { createCube, loadTexture, loadTextureFromElement } from "./helpers";
+import { createCube, loadTextureFromElement } from "./helpers";
 import { ShaderProgram } from "./ShaderProgram";
 
 const DESIRED_FPS = 60;

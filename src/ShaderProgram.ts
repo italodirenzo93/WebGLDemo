@@ -1,4 +1,5 @@
 import { ReadonlyMat4 } from "gl-matrix";
+import { minifyShaderCode } from "./helpers";
 
 // Vertex shader
 const vertexShaderSource = `
@@ -109,11 +110,11 @@ export class ShaderProgram {
 
     private static compileAndLink(gl: WebGLRenderingContext): void {
         const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-        gl.shaderSource(vertexShader, vertexShaderSource.trim());
+        gl.shaderSource(vertexShader, minifyShaderCode(vertexShaderSource));
         gl.compileShader(vertexShader);
 
         const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-        gl.shaderSource(fragmentShader, fragmentShaderSource.trim());
+        gl.shaderSource(fragmentShader, minifyShaderCode(fragmentShaderSource));
         gl.compileShader(fragmentShader);
 
         // Shader program
