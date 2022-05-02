@@ -1,4 +1,5 @@
 import { mat4, quat, vec3 } from "gl-matrix";
+import { Colors } from "./Color";
 import CubeObject from "./CubeObject";
 import { loadTextureFromElement } from "./helpers";
 import { ShaderProgram } from "./ShaderProgram";
@@ -38,7 +39,7 @@ export default async function main(canvas: HTMLCanvasElement): Promise<void> {
     const sceneObjects = [
         new CubeObject(gl, [0.5, 0.5, 0.5], quat.create(), vec3.fromValues(1, 1, 1), texture),
         new CubeObject(gl, [-0.5, -0.5, -0.5], quat.create(), vec3.fromValues(0.5, 0.5, 0.5), texture),
-    ] as const;
+    ];
 
     const uProjectionMatrix = mat4.perspective(
         mat4.create(),
@@ -67,7 +68,7 @@ export default async function main(canvas: HTMLCanvasElement): Promise<void> {
     }
 
     // Set clear color to the classic cornflower blue
-    gl.clearColor(0.39, 0.58, 0.92, 1);
+    gl.clearColor(...Colors.cornflowerBlue.values());
 
     // Enable depth testing
     gl.enable(gl.DEPTH_TEST);

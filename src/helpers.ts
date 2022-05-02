@@ -143,7 +143,7 @@ export function loadTexture(
     const image = new Image();
 
     return new Promise((resolve, reject) => {
-        
+
         image.onload = () => {
             gl.bindTexture(gl.TEXTURE_2D, texture);
             gl.texImage2D(
@@ -155,7 +155,7 @@ export function loadTexture(
                 // @ts-ignore
                 image
             );
-    
+
             generateMipMaps(gl, image);
 
             resolve(texture);
@@ -186,12 +186,12 @@ export function loadTextureFromElement(gl: WebGLRenderingContext, image: HTMLIma
                 gl.UNSIGNED_BYTE,
                 image
             );
-        
+
             generateMipMaps(gl, image);
-    
+
             resolve(texture);
         });
-    
+
         image.addEventListener('error', (err) => {
             gl.bindTexture(gl.TEXTURE_2D, null);
             gl.deleteTexture(texture);
