@@ -10,7 +10,8 @@ class CubeObject {
     constructor(
         private readonly gl: WebGL2RenderingContext,
         private _position: ReadonlyVec3 = vec3.create(),
-        private _rotation: ReadonlyQuat = quat.create()
+        private _rotation: ReadonlyQuat = quat.create(),
+        public texture?: WebGLTexture,
     ) {
         this._data = createCube(gl);
     }
@@ -42,6 +43,10 @@ class CubeObject {
     }
 
     render(program: ShaderProgram): void {
+        if (this.texture) {
+            program.setTexture(this.texture);
+        }
+
         program.setModelMatrix(this.modelMatrix);
         program.setVertexData(this._data.vertices);
         program.setTextureCoordinates(this._data.texCoords);

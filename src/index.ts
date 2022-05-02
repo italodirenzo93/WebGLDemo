@@ -1,10 +1,9 @@
 import { mat4, quat, vec3 } from "gl-matrix";
 import CubeObject from "./CubeObject";
-import { createCube, GeometricPrimitive, loadTextureFromElement } from "./helpers";
+import { loadTextureFromElement } from "./helpers";
 import { ShaderProgram } from "./ShaderProgram";
 
 const DESIRED_FPS = 60;
-const USE_KEYBOARD = false;
 
 export default async function main(canvas: HTMLCanvasElement): Promise<void> {
     const gl = canvas.getContext("webgl2");
@@ -35,13 +34,12 @@ export default async function main(canvas: HTMLCanvasElement): Promise<void> {
     // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#always_enable_vertex_attrib_0_as_an_array
     gl.enableVertexAttribArray(0);
 
-    const sceneObjects = [
-        new CubeObject(gl, [0.5, 0.5, 0.5]),
-        new CubeObject(gl, [-0.5, -0.5, -0.5]),
-    ] as const;
-
     const texture = await loadTextureFromElement(gl, document.getElementById("cube-texture") as HTMLImageElement);
-    shaderProgram.setTexture(texture);
+
+    const sceneObjects = [
+        new CubeObject(gl, [0.5, 0.5, 0.5], quat.create(), texture),
+        new CubeObject(gl, [-0.5, -0.5, -0.5], quat.create(), texture),
+    ] as const;
 
     const uProjectionMatrix = mat4.perspective(
         mat4.create(),
@@ -56,7 +54,6 @@ export default async function main(canvas: HTMLCanvasElement): Promise<void> {
         vec3.create(),
         vec3.fromValues(0, 1, 0)
     );
-    const uModelMatrix = mat4.identity(mat4.create());
 
     /**
      * Update the world.
