@@ -11,6 +11,7 @@ class CubeObject {
         private readonly gl: WebGL2RenderingContext,
         private _position: ReadonlyVec3 = vec3.create(),
         private _rotation: ReadonlyQuat = quat.create(),
+        private _scale: ReadonlyVec3 = vec3.fromValues(1, 1, 1),
         public texture?: WebGLTexture,
     ) {
         this._data = createCube(gl);
@@ -34,9 +35,18 @@ class CubeObject {
         this._dirty = true;
     }
 
+    get scale(): ReadonlyVec3 {
+        return this._scale;
+    }
+
+    set scale(scale: ReadonlyVec3) {
+        this._scale = scale;
+        this._dirty = true;
+    }
+
     get modelMatrix(): ReadonlyMat4 {
         if (this._dirty) {
-            mat4.fromRotationTranslation(this._modelMatrix, this._rotation, this._position);
+            mat4.fromRotationTranslationScale(this._modelMatrix, this._rotation, this._position, this._scale);
             this._dirty = false;
         }
         return this._modelMatrix;

@@ -29,7 +29,6 @@ export default async function main(canvas: HTMLCanvasElement): Promise<void> {
     });
 
     const shaderProgram = new ShaderProgram(gl);
-    shaderProgram.use();
 
     // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#always_enable_vertex_attrib_0_as_an_array
     gl.enableVertexAttribArray(0);
@@ -37,8 +36,8 @@ export default async function main(canvas: HTMLCanvasElement): Promise<void> {
     const texture = await loadTextureFromElement(gl, document.getElementById("cube-texture") as HTMLImageElement);
 
     const sceneObjects = [
-        new CubeObject(gl, [0.5, 0.5, 0.5], quat.create(), texture),
-        new CubeObject(gl, [-0.5, -0.5, -0.5], quat.create(), texture),
+        new CubeObject(gl, [0.5, 0.5, 0.5], quat.create(), vec3.fromValues(1, 1, 1), texture),
+        new CubeObject(gl, [-0.5, -0.5, -0.5], quat.create(), vec3.fromValues(0.5, 0.5, 0.5), texture),
     ] as const;
 
     const uProjectionMatrix = mat4.perspective(
@@ -67,8 +66,8 @@ export default async function main(canvas: HTMLCanvasElement): Promise<void> {
         }
     }
 
-    // Set clear color to black
-    gl.clearColor(0, 0, 0, 1);
+    // Set clear color to the classic cornflower blue
+    gl.clearColor(0.39, 0.58, 0.92, 1);
 
     // Enable depth testing
     gl.enable(gl.DEPTH_TEST);
@@ -81,6 +80,9 @@ export default async function main(canvas: HTMLCanvasElement): Promise<void> {
      * Render the world.
      */
     function render(): void {
+        // Use shader program
+        shaderProgram.use();
+
         // Clear the canvas
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
