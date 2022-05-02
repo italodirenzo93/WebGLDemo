@@ -1,5 +1,6 @@
-import { mat4, vec3 } from "gl-matrix";
-import { createCube, loadTextureFromElement } from "./helpers";
+import { mat4, quat, vec3 } from "gl-matrix";
+import CubeObject from "./CubeObject";
+import { createCube, GeometricPrimitive, loadTextureFromElement } from "./helpers";
 import { ShaderProgram } from "./ShaderProgram";
 
 const DESIRED_FPS = 60;
@@ -34,11 +35,12 @@ export default async function main(canvas: HTMLCanvasElement): Promise<void> {
     // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#always_enable_vertex_attrib_0_as_an_array
     gl.enableVertexAttribArray(0);
 
-    const { vertices, texCoords, elements, elementCount } = createCube(gl);
-    const texture = await loadTextureFromElement(gl, document.getElementById("cube-texture") as HTMLImageElement);
+    const sceneObjects = [
+        new CubeObject(gl, [0.5, 0.5, 0.5]),
+        new CubeObject(gl, [-0.5, -0.5, -0.5]),
+    ] as const;
 
-    shaderProgram.setVertexData(vertices);
-    shaderProgram.setTextureCoordinates(texCoords);
+    const texture = await loadTextureFromElement(gl, document.getElementById("cube-texture") as HTMLImageElement);
     shaderProgram.setTexture(texture);
 
     const uProjectionMatrix = mat4.perspective(
@@ -63,15 +65,8 @@ export default async function main(canvas: HTMLCanvasElement): Promise<void> {
     function update(deltaTime: number): void {
         const rad = deltaTime / 1000;
 
-        if (!USE_KEYBOARD) {
-            mat4.rotate(uModelMatrix, uModelMatrix, rad, [1, 1, 1]);
-            return;
-        }
-
-        if (keys.get("ArrowLeft")) {
-            mat4.rotateY(uModelMatrix, uModelMatrix, -rad);
-        } else if (keys.get("ArrowRight")) {
-            mat4.rotateY(uModelMatrix, uModelMatrix, rad);
+        for (const obj of sceneObjects) {
+            obj.rotation = quat.rotateY(quat.create(), obj.rotation, rad);
         }
     }
 
@@ -92,11 +87,10 @@ export default async function main(canvas: HTMLCanvasElement): Promise<void> {
         // Clear the canvas
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        // Set matrices
-        shaderProgram.setModelMatrix(uModelMatrix);
-
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elements);
-        gl.drawElements(gl.TRIANGLES, elementCount, gl.UNSIGNED_SHORT, 0);
+        // Render scene objects
+        for (const obj of sceneObjects) {
+            obj.render(shaderProgram);
+        }
     }
 
     const interval = DESIRED_FPS / 1000;
