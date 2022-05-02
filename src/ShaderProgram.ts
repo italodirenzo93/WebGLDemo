@@ -3,8 +3,6 @@ import { minifyShaderCode } from "./helpers";
 
 // Vertex shader
 const vertexShaderSource = `#version 300 es
-#pragma vscode_glsllint_stage: vert
-
 layout(location=0) in vec3 a_Position;
 layout(location=1) in vec2 a_TextureCoord;
 
@@ -23,8 +21,6 @@ void main() {
 
 // Fragment shader
 const fragmentShaderSource = `#version 300 es
-#pragma vscode_glsllint_stage: frag
-
 precision highp float;
 
 in vec2 textureCoord;
@@ -142,9 +138,17 @@ export class ShaderProgram {
         gl.shaderSource(vertexShader, minifyShaderCode(vertexShaderSource));
         gl.compileShader(vertexShader);
 
+        if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+            throw new Error(gl.getShaderInfoLog(vertexShader));
+        }
+
         const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
         gl.shaderSource(fragmentShader, minifyShaderCode(fragmentShaderSource));
         gl.compileShader(fragmentShader);
+
+        if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+            throw new Error(gl.getShaderInfoLog(fragmentShader));
+        }
 
         // Shader program
         ShaderProgram.s_program = gl.createProgram();

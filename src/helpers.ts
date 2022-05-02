@@ -230,8 +230,7 @@ export function generateMipMaps(gl: WebGLRenderingContext, image: HTMLImageEleme
 }
 
 export function minifyShaderCode(code: string): string {
-    let optimized = code.replace(/\n/g, '');
-    optimized = optimized.replace(/\t/g, '');
+    let optimized = code.replace(/\t/g, '');
     optimized = optimized.replace(/\s{2,}/g, '');
     return optimized;
 }
